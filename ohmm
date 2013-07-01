@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+
+echo "One Helluva Music Manager:"
+echo -e "Welcome to ohmm,\n\tI am a easy and simple tool to play your music through CLI"
+echo -e "\tI am basically a wrapper over your shell. Certain commands I will recognize to manipulate your music"
+echo -e "\tAnything I do not know I will throw at your favorite shell!"
+echo -e "\nCOMMANDS:\n\tplay [SONG]\n\tpause\n\tnext\n\tup|down for volume control\n\tinfo\n\tstop\n\tquit"
+echo -e "\tuse shell commands to navigate your filesystem and create directories for playlists"
+echo "=========="
+
+# TODO
+PID=$(pidof mplayer)
+kill $PID >& /dev/null
+
+# create fifo
+FIFO=./.fifo
+if [ ! -e $FIFO ]; then
+	mkfifo $FIFO
+fi
+
+# create backend
+MARGS="-slave -idle -quiet -input file=$FIFO"
+mplayer $MARGS > /dev/null 2>&1 &
+VOLUME=10
+PWD=$(pwd)
+V_INC=10
+
+# set initial volume
+echo "volume $VOLUME" > $FIFO
+
+# TODO
+# yet another wrapper for sending mplayer what to play
+function ohmm_play {
+	echo "loadfile $PWD/$1" > $FIFO
+}
+
+# execute the shell command with the line tokenized into array
+function shell_cmd {
+	LINE_CMD=""
+	for s in ${CMD[@]}; do
+		LINE_CMD="$LINE_CMD $s"
+	done
+	$LINE_CMD
+}
+
+# driver loop
+while true; do
+CMD=""
+# 	prompt
+	echo -n "ohmm|$PWD "
+
+# 	get user command and tokenize into array TODO
+	read -a CMD 
+	
+	if [ -z ${CMD[0]} ]
+	then
+		continue
+	fi
+
+#	check if I recognize it
+	if [ "${CMD[0]}" = "play" ] 
+	then
+		ohmm_play ${CMD[1]}
+	
+	elif [ "${CMD[0]}" = "pause" ]
+	then
+		echo "pause" > $FIFO
+
+	elif [ "${CMD[0]}" = "up" ]
+	then
+		VOLUME=$(($VOLUME+$V_INC))
+		echo "volume $VOLUME 0" > $FIFO
+
+	elif [ "${CMD[0]}" = "down" ]
+	then
+		VOLUME=$(($VOLUME-$V_INC))
+		echo "volume $VOLUME 0" > $FIFO
+
+	elif [ "${CMD[0]}" = "info" ]
+	then
+		echo "get_meta_track" > $FIFO
+
+	elif [ "${CMD[0]}" = "stop" ]
+	then
+		echo "stop" > $FIFO
+	
+	elif [ "${CMD[0]}" = "quit" ]
+	then
+		echo "quit" > $FIFO
+		rm $FIFO
+		clear
+		echo -n $PS1
+		break
+	
+	else
+		shell_cmd $CMD
+	fi
+done
