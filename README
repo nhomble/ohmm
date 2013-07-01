@@ -1,3 +1,17 @@
-# TODO
-# separate arguments by || ad && possibly
-# play, play $dir
+One Helluva Music Manager:
+
+I am an easy and simple tool to play your music through CLI.
+I am basically a wrapper over your shell. Certain commands I will recognize to manipulate your music.
+Anything I do not know I will throw at your favorite shell!
+
+COMMANDS:
+	play [SONG]
+	pause
+	next
+	up|down 
+	info
+	stop
+	quit
+Use shell commands to navigate your filesystem and create directories for playlists.
+
+

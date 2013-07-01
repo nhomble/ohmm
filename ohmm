@@ -1,12 +1,8 @@
 #!/usr/bin/env bash
 
-echo "One Helluva Music Manager:"
-echo -e "Welcome to ohmm,\n\tI am a easy and simple tool to play your music through CLI"
-echo -e "\tI am basically a wrapper over your shell. Certain commands I will recognize to manipulate your music"
-echo -e "\tAnything I do not know I will throw at your favorite shell!"
-echo -e "\nCOMMANDS:\n\tplay [SONG]\n\tpause\n\tnext\n\tup|down for volume control\n\tinfo\n\tstop\n\tquit"
-echo -e "\tuse shell commands to navigate your filesystem and create directories for playlists"
-echo "=========="
+# TODO
+# separate arguments by || ad && possibly
+# play, play $dir
 
 # TODO
 PID=$(pidof mplayer)
