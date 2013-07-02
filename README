@@ -6,9 +6,12 @@ Anything I do not know I will throw at your favorite shell!
 
 COMMANDS:
 	play [SONG]
+		if no argument is provided I play all contents of the directory recursively
 	pause
-	next
-	up|down 
+	(n)ext|(b)ack
+	(u)p|(d)own
+	add [SONG]
+		play afterwards for an on the fly playorder
 	info
 	stop
 	quit

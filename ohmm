@@ -8,25 +8,36 @@ PID=$(pidof mplayer)
 kill $PID >& /dev/null
 
 # create fifo
-FIFO=./.fifo
+FIFO=/var/tmp/.fifo
 if [ ! -e $FIFO ]; then
 	mkfifo $FIFO
 fi
 
+MY_STDOUT=/var/tmp/.ohmm_out
+SLEEP=.2s
+
 # create backend
 MARGS="-slave -idle -quiet -input file=$FIFO"
-mplayer $MARGS > /dev/null 2>&1 &
+mplayer $MARGS > $MY_STDOUT 2>&1 &
 VOLUME=50
 PWD=$(pwd)
 V_INC=10
 
 # set initial volume
-echo "set-property volume $VOLUME" > $FIFO
+echo "set volume $VOLUME" > $FIFO
 
 # TODO
 # yet another wrapper for sending mplayer what to play
 function ohmm_play {
-	echo "loadfile $PWD/$1" > $FIFO
+	if [ "$1" = "" ]; then
+		echo dir
+	else
+		if [ -e "$1" ]; then
+			echo "loadfile $PWD/$1 $2" > $FIFO
+		else
+			echo "$1 does not exist"
+		fi
+	fi
 }
 
 # execute the shell command with the line tokenized into array
@@ -44,7 +55,7 @@ CMD=""
 # 	prompt
 	echo -n "ohmm|$PWD "
 
-# 	get user command and tokenize into array TODO
+# 	get user command and tokenize into array
 	read -a CMD 
 	
 	if [ -z ${CMD[0]} ]; then
@@ -53,10 +64,19 @@ CMD=""
 
 #	check if I recognize it
 	if [ "${CMD[0]}" = "play" ]; then
-		ohmm_play ${CMD[1]}
+		ohmm_play ${CMD[1]} 0
+
+	elif [ "${CMD[0]}" = "add" ]; then
+		ohmm_play ${CMD[1]} 1
 	
 	elif [ "${CMD[0]}" = "pause" ]; then
 		echo "pause" > $FIFO
+
+	elif [ "${CMD[0]}" = "next" ] || [ "${CMD[0]}" = "n" ]; then
+		echo "pt_step 1" > $FIFO
+
+	elif [ "${CMD[0]}" = "back" ] || [ "${CMD[0]}" = "b" ]; then
+		echo "pt_step -1" > $FIFO
 
 	elif [ "${CMD[0]}" = "up" ] || [ "${CMD[0]}" = "u" ]; then
 #		bound the upper limit of the volume value
@@ -72,8 +92,14 @@ CMD=""
 		fi
 		echo "set volume $VOLUME 0" > $FIFO
 
+#	TODO make it prettier and be able to edit info and search
 	elif [ "${CMD[0]}" = "info" ]; then
+		echo "get_file_name" > $FIFO
 		echo "get_meta_track" > $FIFO
+		echo "get_meta_artist" > $FIFO
+		echo "get_meta_album" > $FIFO
+		sleep $SLEEP 
+		tail $MY_STDOUT | grep "ANS_"
 
 	elif [ "${CMD[0]}" = "stop" ]; then
 		echo "stop" > $FIFO
@@ -81,10 +107,11 @@ CMD=""
 	elif [ "${CMD[0]}" = "quit" ]; then
 		echo "quit" > $FIFO
 		rm $FIFO
+		rm $MY_STDOUT
 		clear
 		echo -n $PS1
 		break
-	
+
 	else
 		shell_cmd $CMD
 	fi
