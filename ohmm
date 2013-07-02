@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 
 # TODO
-# separate arguments by || ad && possibly
+# separate arguments by || and && possibly
+# colors
+# history
+# auto-complete
+# looping
 
 # TODO
 PID=$(pidof mplayer)
@@ -15,6 +19,8 @@ fi
 
 MY_STDOUT=/var/tmp/.ohmm_out
 SLEEP=.2s
+# TODO make generic
+EXE_PATH=/home/nicolas/code/ohmm
 
 # create backend
 MARGS="-slave -idle -quiet -input file=$FIFO"
@@ -29,7 +35,7 @@ echo "set volume $VOLUME" > $FIFO
 # TODO
 # yet another wrapper for sending mplayer what to play
 function ohmm_play {
-	if [ "$1" = "" ]; then
+	if [ -z "$1" ]; then
 		echo dir
 	else
 		if [ -e "$1" ]; then
@@ -65,6 +71,10 @@ CMD=""
 #	check if I recognize it
 	if [ "${CMD[0]}" = "play" ]; then
 		ohmm_play ${CMD[1]} 0
+
+#	TODO pretty shitty help -- should make it better eventually
+	elif [ "${CMD[0]}" = "help" ] || [ "${CMD[0]}" = "h" ]; then
+		cat $EXE_PATH/README
 
 	elif [ "${CMD[0]}" = "add" ]; then
 		ohmm_play ${CMD[1]} 1
@@ -104,7 +114,7 @@ CMD=""
 	elif [ "${CMD[0]}" = "stop" ]; then
 		echo "stop" > $FIFO
 	
-	elif [ "${CMD[0]}" = "quit" ]; then
+	elif [ "${CMD[0]}" = "quit" ] || [ "${CMD[0]}" = "q" ]; then
 		echo "quit" > $FIFO
 		rm $FIFO
 		rm $MY_STDOUT
