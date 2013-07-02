@@ -2,7 +2,6 @@
 
 # TODO
 # separate arguments by || ad && possibly
-# play, play $dir
 
 # TODO
 PID=$(pidof mplayer)
@@ -17,12 +16,12 @@ fi
 # create backend
 MARGS="-slave -idle -quiet -input file=$FIFO"
 mplayer $MARGS > /dev/null 2>&1 &
-VOLUME=10
+VOLUME=50
 PWD=$(pwd)
 V_INC=10
 
 # set initial volume
-echo "volume $VOLUME" > $FIFO
+echo "set-property volume $VOLUME" > $FIFO
 
 # TODO
 # yet another wrapper for sending mplayer what to play
@@ -48,40 +47,38 @@ CMD=""
 # 	get user command and tokenize into array TODO
 	read -a CMD 
 	
-	if [ -z ${CMD[0]} ]
-	then
+	if [ -z ${CMD[0]} ]; then
 		continue
 	fi
 
 #	check if I recognize it
-	if [ "${CMD[0]}" = "play" ] 
-	then
+	if [ "${CMD[0]}" = "play" ]; then
 		ohmm_play ${CMD[1]}
 	
-	elif [ "${CMD[0]}" = "pause" ]
-	then
+	elif [ "${CMD[0]}" = "pause" ]; then
 		echo "pause" > $FIFO
 
-	elif [ "${CMD[0]}" = "up" ]
-	then
-		VOLUME=$(($VOLUME+$V_INC))
-		echo "volume $VOLUME 0" > $FIFO
+	elif [ "${CMD[0]}" = "up" ] || [ "${CMD[0]}" = "u" ]; then
+#		bound the upper limit of the volume value
+		if [ $VOLUME -lt 100 ]; then
+			VOLUME=$(($VOLUME+$V_INC))
+		fi
+		echo "set volume $VOLUME 0" > $FIFO
 
-	elif [ "${CMD[0]}" = "down" ]
-	then
-		VOLUME=$(($VOLUME-$V_INC))
-		echo "volume $VOLUME 0" > $FIFO
+	elif [ "${CMD[0]}" = "down" ] || [ "${CMD[0]}" = "d" ]; then
+#		bound the lower limit of the volume value
+		if [ $VOLUME -gt 0 ]; then
+			VOLUME=$(($VOLUME-$V_INC))
+		fi
+		echo "set volume $VOLUME 0" > $FIFO
 
-	elif [ "${CMD[0]}" = "info" ]
-	then
+	elif [ "${CMD[0]}" = "info" ]; then
 		echo "get_meta_track" > $FIFO
 
-	elif [ "${CMD[0]}" = "stop" ]
-	then
+	elif [ "${CMD[0]}" = "stop" ]; then
 		echo "stop" > $FIFO
 	
-	elif [ "${CMD[0]}" = "quit" ]
-	then
+	elif [ "${CMD[0]}" = "quit" ]; then
 		echo "quit" > $FIFO
 		rm $FIFO
 		clear
