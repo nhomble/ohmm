@@ -8,8 +8,7 @@
 # looping
 
 # TODO
-PID=$(pidof mplayer)
-kill $PID >& /dev/null
+pidof mplayer | xargs kill &>/dev/null
 
 # create fifo
 FIFO=/var/tmp/.fifo
@@ -32,11 +31,21 @@ V_INC=10
 # set initial volume
 echo "set volume $VOLUME" > $FIFO
 
-# TODO
 # yet another wrapper for sending mplayer what to play
 function ohmm_play {
-	if [ -z "$1" ]; then
-		echo dir
+	if [ -z "$2" ]; then
+		for f in `find . \( ! -iname ".*" \)`; do
+			if [ -d $f ]; then
+				ODIR=$PWD
+				cd $f
+				ohmm_play "" ""
+				cd $ODIR	
+			else
+#				spaces suck, I am going to fix them for you
+				cp -n $f $(echo $f | tr ' ' '_') &>/dev/null && rm $f
+				echo "loadfile $PWD/$(echo $f | tr ' ' '_') 1" > $FIFO
+			fi
+		done
 	else
 		if [ -e "$1" ]; then
 			echo "loadfile $PWD/$1 $2" > $FIFO
@@ -70,7 +79,10 @@ CMD=""
 
 #	check if I recognize it
 	if [ "${CMD[0]}" = "play" ]; then
+		OIFS=$IFS
+		IFS=$'\n'
 		ohmm_play ${CMD[1]} 0
+		IFS="$OIFS"
 
 #	TODO pretty shitty help -- should make it better eventually
 	elif [ "${CMD[0]}" = "help" ] || [ "${CMD[0]}" = "h" ]; then
