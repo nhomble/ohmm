@@ -10,6 +10,7 @@
 # search
 # edit info
 
+# a little excessive? TODO
 pidof mplayer | xargs kill &>/dev/null
 
 # create fifo
@@ -23,7 +24,7 @@ QUEUE=/var/tmp/.plyst
 SLEEP=.1s
 # TODO make generic
 EXE_PATH=/home/nicolas/code/ohmm
-
+IS_SHUFFLE=false
 # create backend
 VOLUME=50
 PWD=$(pwd)
@@ -35,7 +36,9 @@ mplayer $MARGS > $MY_STDOUT 2>&1 &
 # yet another wrapper for sending mplayer what to play
 function ohmm_play {
 	if [ -z "$1" ]; then
+#		should filter just music extensions I think are applicable
 		for f in `find . \( ! -iname ".*" \) -type f`; do
+#			I have not decided what I want to do here
 			if [ -d $f ]; then
 				ODIR=$PWD
 				cd $f
@@ -48,7 +51,14 @@ function ohmm_play {
 		done
 	else
 		if [ -e "$1" ]; then
-			echo "$PWD/$1" >> $QUEUE
+			if [ -d "$1" ]; then
+				ODIR=$PWD
+				cd "$1"
+				ohmm_play "" ""
+				cd $ODIR
+			else
+				echo "$PWD/$1" >> $QUEUE
+			fi
 		else
 			echo "$1 does not exist"
 		fi
@@ -68,7 +78,7 @@ function shell_cmd {
 while true; do
 CMD=""
 # 	prompt
-	echo -n "ohmm|$PWD "
+	echo -n "ohmm|$(basename $PWD) "
 
 # 	get user command and tokenize into array
 	read -a CMD 
@@ -79,6 +89,7 @@ CMD=""
 
 #	check if I recognize it
 	if [ "${CMD[0]}" = "play" ]; then
+#		clear old previous from play
 		if [ -e $QUEUE ]; then
 			rm $QUEUE
 		fi
@@ -86,8 +97,11 @@ CMD=""
 		OIFS=$IFS
 		IFS=$'\n'
 		ohmm_play ${CMD[1]}
+
+
 		IFS="$OIFS"
 		echo "loadlist $QUEUE -loop $LOOP 0" > $FIFO
+#	TODO
 	elif [ "${CMD[0]}" = "repeat" ]; then
 		if [ "${CMD[1]}" = "none" ]; then
 			LOOP=-1
@@ -101,7 +115,20 @@ CMD=""
 	
 
 	elif [ "${CMD[0]}" = "shuffle" ]; then
-		echo "loadlist $QUEUE -loop $LOOP -shuffle" > $FIFO
+		if [ "${CMD[1]}" = "on" ]; then
+			IS_SHUFFLE=true
+		elif [ "${CMD[1]}" = "off" ]; then
+			IS_SHUFFLE=false
+		else
+			echo "bad argument: ${CMD[1]}"
+		fi
+
+	elif [ "${CMD[0]}" = "s" ]; then
+		if [ $IS_SHUFFLE ]; then
+			IS_SHUFFLE=false
+		else
+			IS_SHUFFLE=true
+		fi
 
 #	TODO pretty shitty help -- should make it better eventually
 	elif [ "${CMD[0]}" = "help" ] || [ "${CMD[0]}" = "h" ]; then
@@ -109,15 +136,34 @@ CMD=""
 
 #	append song to currently on the fly playlist
 	elif [ "${CMD[0]}" = "add" ]; then
-#		append to playlist file
-		if [ -e $QUEUE ]; then
-			echo "$PWD/${CMD[1]}" >> $QUEUE
-#			append playlist
-			echo "loadfile $PWD/${CMD[1]} 1" > $FIFO
+		if [ -e "${CMD[1]}" ]; then
+			if [ -d "${CMD[1]}" ]; then
+				ODIR=$PWD
+				cd "${CMD[1]}"
+				for f in `find . \( ! -iname ".*" \) -type f`; do
+					if [ -e $QUEUE ] && [ -f $f ]; then	
+						echo "$PWD/${CMD[1]}/$f" >> $QUEUE
+						echo "loadfile $PWD/${CMD[1]}/$f 1" > $FIFO
+					else
+						echo "$PWD/${CMD[1]}/$f" > $QUEUE
+						echo "loadlist $QUEUE -loop $LOOP 1" > $FIFO
+					fi
+				done
+				cd $ODIR
+			else
+#				append to playlist file
+				if [ -e $QUEUE ]; then
+					echo "$PWD/${CMD[1]}" >> $QUEUE
+#					append playlist
+					echo "loadfile $PWD/${CMD[1]} 1" > $FIFO
+				else
+#					need to create the playlist
+					echo "$PWD/${CMD[1]}" > $QUEUE
+					echo "loadlist $QUEUE -loop $LOOP 1" > $FIFO
+				fi
+			fi
 		else
-#			need to create the playlist
-			echo "$PWD/${CMD[1]}" > $QUEUE
-			echo "loadlist $QUEUE -loop $LOOP 1" > $FIFO
+			echo "${CMD[0]} does not exist"
 		fi
 
 	elif [ "${CMD[0]}" = "pause" ]; then
@@ -163,13 +209,13 @@ CMD=""
 	
 	elif [ "${CMD[0]}" = "quit" ] || [ "${CMD[0]}" = "q" ]; then
 		echo "quit" > $FIFO
-		if [-e $QUEUE ]; then
+		if [ -e $QUEUE ]; then
 			rm $QUEUE
+			echo here
 		fi
 
 		rm $FIFO
 		rm $MY_STDOUT
-		clear
 		echo -n $PS1
 		break
 
