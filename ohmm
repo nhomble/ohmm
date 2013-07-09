@@ -19,11 +19,12 @@ if [ ! -e $FIFO ]; then
 	mkfifo $FIFO
 fi
 
+EXE_PATH=$(dirname "$0")
+EXE_PATH=$(cd $EXE_PATH && pwd)
+
 MY_STDOUT=/var/tmp/.ohmm_out
 QUEUE=/var/tmp/.plyst
 SLEEP=.1s
-# TODO make generic
-EXE_PATH=/home/nicolas/code/ohmm
 IS_SHUFFLE=false
 # create backend
 VOLUME=50
