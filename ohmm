@@ -75,14 +75,7 @@ function shell_cmd {
 	$LINE_CMD
 }
 
-# driver loop
-while true; do
-CMD=""
-# 	prompt
-	echo -n "ohmm|$(basename $PWD) "
-
-# 	get user command and tokenize into array
-	read -a CMD 
+function driver {
 	
 	if [ -z ${CMD[0]} ]; then
 		continue
@@ -167,7 +160,7 @@ CMD=""
 			echo "${CMD[0]} does not exist"
 		fi
 
-	elif [ "${CMD[0]}" = "pause" ]; then
+	elif [ "${CMD[0]}" = "pause" ] || [ "${CMD[0]}" = "p" ]; then
 		echo "pause" > $FIFO
 
 	elif [ "${CMD[0]}" = "next" ] || [ "${CMD[0]}" = "n" ]; then
@@ -223,4 +216,18 @@ CMD=""
 	else
 		shell_cmd $CMD
 	fi
+}
+
+# driver loop
+while true; do
+CMD=""
+# 	prompt
+	echo -n "ohmm|$(basename $PWD) "
+
+# 	get user command and tokenize into array
+	read -a CMD 
+
+	driver
 done
+
+
