@@ -21,13 +21,22 @@ fi
 
 EXE_PATH=$(dirname "$0")
 EXE_PATH=$(cd $EXE_PATH && pwd)
+LIBRARY="$EXE_PATH/library"
+
+# for use in my find invocations - I only want to work with certain audio types
+FORMATS='.*\(mp3\|mp4\|flac\)'
+
+if [ ! -e $LIBRARY ]; then
+	mkdir $LIBRARY
+fi
 
 MY_STDOUT=/var/tmp/.ohmm_out
 QUEUE=/var/tmp/.plyst
 SLEEP=.1s
 IS_SHUFFLE=false
+
 # create backend
-VOLUME=50
+VOLUME=100
 PWD=$(pwd)
 V_INC=10
 LOOP=-1
@@ -38,7 +47,7 @@ mplayer $MARGS > $MY_STDOUT 2>&1 &
 function ohmm_play {
 	if [ -z "$1" ]; then
 #		should filter just music extensions I think are applicable
-		for f in `find . \( ! -iname ".*" \) -type f`; do
+		for f in `find . \( ! -iname ".*" \) -type f` -iregex $FORMATS; do
 #			I have not decided what I want to do here
 			if [ -d $f ]; then
 				ODIR=$PWD
@@ -75,8 +84,8 @@ function shell_cmd {
 	$LINE_CMD
 }
 
+# command handler
 function driver {
-	
 	if [ -z ${CMD[0]} ]; then
 		continue
 	fi
@@ -134,7 +143,7 @@ function driver {
 			if [ -d "${CMD[1]}" ]; then
 				ODIR=$PWD
 				cd "${CMD[1]}"
-				for f in `find . \( ! -iname ".*" \) -type f`; do
+				for f in `find . \( ! -iname ".*" \) -type f` -iregex $FORMATS; do
 					if [ -e $QUEUE ] && [ -f $f ]; then	
 						echo "$PWD/${CMD[1]}/$f" >> $QUEUE
 						echo "loadfile $PWD/${CMD[1]}/$f 1" > $FIFO
@@ -164,10 +173,24 @@ function driver {
 		echo "pause" > $FIFO
 
 	elif [ "${CMD[0]}" = "next" ] || [ "${CMD[0]}" = "n" ]; then
-		echo "pt_step 1" > $FIFO
+		ITER=${CMD[1]}
+		if [ -z "$ITER" ]; then
+			echo "pt_step 1" > $FIFO
+		elif [ $ITER -gt 1 ]; then
+			echo "pt_step $ITER" > $FIFO
+		else
+			echo "Bad argument $ITER"
+		fi
 
 	elif [ "${CMD[0]}" = "back" ] || [ "${CMD[0]}" = "b" ]; then
-		echo "pt_step -1" > $FIFO
+		ITER=${CMD[1]}
+		if [ -z $ITER ]; then
+			echo "pt_step -1" > $FIFO
+		elif [ $ITER -gt 1 ]; then
+			echo "pt_step $ITER" > $FIFO
+		else
+			echo "Bad argument $ITER"
+		fi
 
 	elif [ "${CMD[0]}" = "up" ] || [ "${CMD[0]}" = "u" ]; then
 #		bound the upper limit of the volume value
@@ -197,7 +220,30 @@ function driver {
 			sed -r 's/ANS_PERCENT_POSITION=([0-9][0-9]*)/\1% done/g' |
 			sed -r 's/.*=//g' | 
 			sed -r 's/PROPERTY_UNAVAILABLE/nothing is playing/g'
+
+#	TODO - take all files from a given directory and extract the files into my library
+	elif [ "${CMD[0]}" = "extract" ]; then
+		DIR="${CMD[2]}"
+		ODIR=pwd
+
+		if [ ! -z "$DIR" ]; then
+			cd $DIR
+		fi
+		for f in `find . \( ! -iname ".*" \) -type f` -iregex $FORMATS; do
+			if [ "${CMD[1]}" = "soft" ]; then
+				ln -s $f "$LIBRARY/$(basename $f)"
+			elif [ "${CMD[1]}" = "hard" ]; then
+				mv -n $f "$LIBRARY/$(basename $f)"
+			else
+				echo "Bad argument ${CMD[1]}"
+				break
+			fi
+		done
+		cd $ODIR	
 	
+	elif [ "${CMD[0]}" = "backup" ]; then
+		echo "not implemented"
+
 	elif [ "${CMD[0]}" = "stop" ]; then
 		echo "stop" > $FIFO
 	
@@ -205,7 +251,6 @@ function driver {
 		echo "quit" > $FIFO
 		if [ -e $QUEUE ]; then
 			rm $QUEUE
-			echo here
 		fi
 
 		rm $FIFO
@@ -227,6 +272,7 @@ CMD=""
 # 	get user command and tokenize into array
 	read -a CMD 
 
+#	handle CMD
 	driver
 done
 
