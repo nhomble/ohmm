@@ -1,53 +1,8 @@
 #!/usr/bin/env bash
 
+VARS="$EXE_PATH/var_ohmm"
+source $VARS
 # ===============================================================
-
-function ohmm_play {
-	OIFS=$IFS
-	IFS=$'\n'
-#	get rid of old stuff
-	if [ -e $QUEUE ]; then
-		rm $QUEUE
-	fi
-	if [ -z "${CMD[1]}" ]; then
-#		should filter just music extensions I think are applicable
-		for f in `find . \( ! -iname ".*" \) -type f` -iregex $FORMATS; do
-#			I have not decided what I want to do here
-			if [ -d $f ]; then
-				ODIR=$PWD
-				cd $f
-				cd $ODIR	
-			else
-#				spaces suck, I am going to fix them for you
-				cp -n $f $(echo $f | tr ' ' '_') &>/dev/null && rm $f
-				echo "$PWD/$(echo $f | tr ' ' '_')" >> $QUEUE 
-			fi
-		done
-	else
-		if [ -e "${CMD[0]}" ]; then
-			if [ -d "${CMD[1]}" ]; then
-				ODIR=$PWD
-				cd "$1"
-				ohmm_play "" ""
-				cd $ODIR
-			else
-				echo "$PWD/${CMD[1]}" >> $QUEUE
-			fi
-		else
-			echo "${CMD[1]} does not exist"
-		fi
-	fi
-	echo "loadlist $QUEUE 0" > $FIFO
-	IFS="$OIFS"
-}
-
-function ohmm_shell_cmd {
-	LINE_CMD=""
-	for s in ${CMD[@]}; do
-		LINE_CMD="$LINE_CMD $s"
-	done
-	$LINE_CMD
-}
 
 function ohmm_add {
 	if [ -e "${CMD[1]}" ]; then
@@ -85,33 +40,6 @@ function ohmm_add {
 	fi
 }
 
-# TODO file name && number in playlist
-function ohmm_get_info {
-	echo "get_file_name" > $FIFO
-	echo "get_meta_track" > $FIFO
-	echo "get_meta_artist" > $FIFO
-	echo "get_meta_album" > $FIFO
-	echo "get_percent_pos" > $FIFO
-	sleep $SLEEP 
-	tail $MY_STDOUT -n 5 | grep "ANS_" | 
-		sed -r 's/ANS_PERCENT_POSITION=([0-9][0-9]*)/\1% done/g' |
-		sed -r 's/.*=//g' | 
-		sed -r 's/PROPERTY_UNAVAILABLE/nothing is playing/g'
-}
-
-# TODO
-function ohmm_next {
-	ITER=${CMD[1]}
-	if [ -z "$ITER" ]; then
-		echo "pt_step 1" > $FIFO
-	elif [ $ITER -gt 1 ]; then
-		echo "pt_step $ITER" > $FIFO
-	else
-		echo "Bad argument $ITER"
-	fi
-}
-
-# TODO
 function ohmm_back {
 	ITER=${CMD[1]}
 	if [ -z $ITER ]; then
@@ -123,16 +51,26 @@ function ohmm_back {
 	fi
 }
 
-# TODO
+# TODO - test
+function ohmm_backup {
+	UPDATE=.ohmm_backup_in_process.tar.gz
+	tar -czvf $UPDATE "$LIBRARY"
+	rsync $UPDATE "EXE_PATH/library.tar.gz"
+	rm $UPDATE
+	UPDATE=""
+}
+
+# TODO - test, deal with overwriting better
 function ohmm_extract {
 	DIR="${CMD[2]}"
-	ODIR=pwd
+	ODIR=$(pwd)
 
+#	check for empty argument - I will use current directory if needed
 	if [ ! -z "$DIR" ]; then
 		cd $DIR
 	fi
-	for f in `find . \( ! -iname ".*" \) -type f` -iregex $FORMATS; do
-	if [ "${CMD[1]}" = "soft" ]; then
+	for f in `find . \( ! -iname ".*" \) -type f -iregex $FORMATS`; do
+		if [ "${CMD[1]}" = "soft" ]; then
 			ln -s $f "$LIBRARY/$(basename $f)"
 		elif [ "${CMD[1]}" = "hard" ]; then
 			mv -n $f "$LIBRARY/$(basename $f)"
@@ -144,14 +82,97 @@ function ohmm_extract {
 	cd $ODIR	
 }
 
-# TODO
+# TODO get number in playlist
+function ohmm_get_info {
+	echo "get_file_name" > $FIFO
+	echo "get_meta_title" > $FIFO
+	echo "get_meta_track" > $FIFO
+	echo "get_meta_artist" > $FIFO
+	echo "get_meta_album" > $FIFO
+	echo "get_percent_pos" > $FIFO
+	echo "get_time_pos" > $FIFO
+	sleep $SLEEP 
+	tail $MY_STDOUT -n 7 | grep "ANS_" | 
+		sed -r 's/ANS_PERCENT_POSITION=([0-9][0-9]*)/\1% done/g' |
+		sed -r 's/ANS_TIME_POSITION=([0-9][0-9]*.[0-9][0-9]*)/\1 seconds elapsed/g' |
+		sed -r 's/.*FILENAME=(.*)/File: \1/g' | 
+		sed -r 's/.*TITLE=(.*)/Name: \1/g' |
+		sed -r 's/.*TRACK=(.*)/Track: \1/g' |
+		sed -r 's/.*ARTIST=(.*)/Artist: \1/g' |
+		sed -r 's/.*ALBUM=(.*)/Album: \1/g' |
+		sed -r 's/PROPERTY_UNAVAILABLE/nothing is playing/g'
+}
+
+# TODO - in playlist get position
+function ohmm_get_position {
+	echo "not implemented"
+}
+
+# TODO goto string argument - first instance
+function ohmm_goto {
+	echo "not implemented"
+}
+
+# TODO - clean up paths
 function ohmm_list {
 	if [ -e $QUEUE ]; then
-#		clean up TODO
 		cat $QUEUE | less -N
 	else
 		echo "Nothing to show"
 	fi
+}
+
+# TODO deal with mtp library
+function ohmm_mtp {
+	echo "not implemented"
+}
+
+function ohmm_next {
+	ITER=${CMD[1]}
+	if [ -z "$ITER" ]; then
+		echo "pt_step 1" > $FIFO
+	elif [ $ITER -gt 1 ]; then
+		echo "pt_step $ITER" > $FIFO
+	else
+		echo "Bad argument $ITER"
+	fi
+}
+
+function ohmm_play {
+	OIFS=$IFS
+	IFS=$'\n'
+#	get rid of old stuff
+	if [ -e $QUEUE ]; then
+		rm $QUEUE
+	fi
+	if [ -z "${CMD[1]}" ]; then
+#		should filter just music extensions I think are applicable
+		for f in `find . \( ! -iname ".*" \) -type f -iregex $FORMATS`; do
+#			I have not decided what I want to do here
+			if [ -d $f ]; then
+				continue
+			else
+#				spaces suck, I am going to fix them for you
+				cp -n $f $(echo $f | tr ' ' '_') &>/dev/null && rm $f
+				echo "$PWD/$(echo $f | tr ' ' '_')" >> $QUEUE 
+			fi
+		done
+	else
+		if [ -e "${CMD[0]}" ]; then
+			if [ -d "${CMD[1]}" ]; then
+				ODIR=$PWD
+				cd "$1"
+				ohmm_play "" ""
+				cd $ODIR
+			else
+				echo "$PWD/${CMD[1]}" >> $QUEUE
+			fi
+		else
+			echo "${CMD[1]} does not exist"
+		fi
+	fi
+	echo "loadlist $QUEUE 0" > $FIFO
+	IFS="$OIFS"
 }
 
 function ohmm_quit {
@@ -159,18 +180,33 @@ function ohmm_quit {
 	if [ -e $QUEUE ]; then
 		rm $QUEUE
 	fi
-
 	rm $FIFO
 	rm $MY_STDOUT
 	echo -n $PS1
 }
 
-# deal with mtp library
-function ohmm_mtp {
-	echo "not implemented"
+# TODO fix
+function ohmm_repeat {
+	if [ "${CMD[1]}" = "none" ]; then
+		LOOP=-1
+	elif [ "${CMD[1]}" = "all" ]; then
+		LOOP=0
+	elif [ "${CMD[1]}" = "num" ]; then
+		LOOP=${CMD[2]}
+	fi
+
+	echo "set loop $LOOP" > $FIFO
 }
 
-# TODO
+function ohmm_shell_cmd {
+	LINE_CMD=""
+	for s in ${CMD[@]}; do
+		LINE_CMD="$LINE_CMD $s"
+	done
+	$LINE_CMD
+}
+
+# TODO fix
 function ohmm_shuffle {
 	if [ "${CMD[1]}" = "on" ]; then
 		IS_SHUFFLE=true
@@ -181,7 +217,6 @@ function ohmm_shuffle {
 	fi
 }
 
-# TODO
 function ohmm_shuffle_toggle {
 	if [ $IS_SHUFFLE ]; then
 		IS_SHUFFLE=false
@@ -210,30 +245,3 @@ function ohmm_volume {
 	fi
 }
 
-# TODO
-function ohmm_repeat {
-	if [ "${CMD[1]}" = "none" ]; then
-		LOOP=-1
-	elif [ "${CMD[1]}" = "all" ]; then
-		LOOP=0
-	elif [ "${CMD[1]}" = "num" ]; then
-		LOOP=${CMD[2]}
-	fi
-
-	echo "set loop $LOOP" > $FIFO
-}
-
-# TODO
-function ohmm_goto {
-	echo "not implemented"
-}
-
-# TODO
-function ohmm_backup {
-	tar -czvf "$EXE_PATH/library.tar.gz" "$LIBRARY"
-}
-
-# TODO
-function ohmm_get_position {
-	echo "not implemented"
-}

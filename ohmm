@@ -13,40 +13,27 @@
 # a little excessive? TODO
 pidof mplayer | xargs kill &>/dev/null
 
-# create fifo
-FIFO=/var/tmp/.fifo
-if [ ! -e $FIFO ]; then
-	mkfifo $FIFO
-fi
-
+PWD=$(pwd)
 EXE_PATH=$(dirname "$0")
 EXE_PATH=$(cd $EXE_PATH && pwd)
-LIBRARY="$EXE_PATH/library"
 FUNCS="$EXE_PATH/func_ohmm"
-if [ ! -e $FUNCS ]; then
-	echo "Where are my guts?"
+VARS="$EXE_PATH/var_ohmm"
+
+if [ ! -e $FUNCS ] || [ ! -e $VARS ]; then
+	echo "Where are my guts? Check that $FUNCS and $VARS exist"
 	exit
 fi
 
 source $FUNCS
 
-# for use in my find invocations - I only want to work with certain audio types
-FORMATS='.*\(mp3\|mp4\|flac\)'
-
 if [ ! -e $LIBRARY ]; then
 	mkdir $LIBRARY
 fi
 
-MY_STDOUT=/var/tmp/.ohmm_out
-QUEUE=/var/tmp/.plyst
-SLEEP=.1s
-IS_SHUFFLE=false
+if [ ! -e $FIFO ]; then
+	mkfifo $FIFO
+fi
 
-# create backend
-VOLUME=100
-PWD=$(pwd)
-V_INC=10
-LOOP=-1
 MARGS="-slave -loop $LOOP -idle -quiet -input file=$FIFO"
 mplayer $MARGS > $MY_STDOUT 2>&1 &
 
@@ -55,59 +42,38 @@ function ohmm_driver {
 #	nothing
 	if [ -z ${CMD[0]} ]; then
 		continue
-	fi
-
-#	create $QUEUE, play song or songs in dir tree
-	if [ "${CMD[0]}" = "play" ]; then
-		ohmm_play
-
-#	give options to repeat the current list
-	elif [ "${CMD[0]}" = "repeat" ]; then
-		ohmm_repeat
-	
-#	verbose way to turn shuffle on|off
-	elif [ "${CMD[0]}" = "shuffle" ]; then
-		ohmm_shuffle
-
-#	shorthand, toggle the current value
-	elif [ "${CMD[0]}" = "s" ]; then
-		ohmm_shuffle_toggle
-
-#	print help
-	elif [ "${CMD[0]}" = "help" ] || [ "${CMD[0]}" = "h" ]; then
-		cat $EXE_PATH/README
 
 #	add music from the fly onto the mplayer's play-list
 	elif [ "${CMD[0]}" = "add" ]; then
 		ohmm_add
 
-#	pause
-	elif [ "${CMD[0]}" = "pause" ] || [ "${CMD[0]}" = "p" ]; then
-		echo "pause" > $FIFO
-
-#	move down playlist file
-	elif [ "${CMD[0]}" = "next" ] || [ "${CMD[0]}" = "n" ]; then
-		ohmm_next
-		
 #	move up playlist file
 	elif [ "${CMD[0]}" = "back" ] || [ "${CMD[0]}" = "b" ]; then
 		ohmm_back
-	
-#	increase volume
-	elif [ "${CMD[0]}" = "up" ] || [ "${CMD[0]}" = "u" ]; then
-		ohmm_volume 1
+
+#	backup contents of library
+	elif [ "${CMD[0]}" = "backup" ]; then
+		ohmm_backup
 
 #	decrease volume
 	elif [ "${CMD[0]}" = "down" ] || [ "${CMD[0]}" = "d" ]; then
 		ohmm_volume -1
 
-#	get info of the current song playing
-	elif [ "${CMD[0]}" = "info" ] || [ "${CMD[0]}" = "i" ]; then
-		ohmm_get_info
-
 #	take all files from a given directory and extract the files into my library
 	elif [ "${CMD[0]}" = "extract" ]; then
 		ohmm_extract
+
+#	print help
+	elif [ "${CMD[0]}" = "help" ] || [ "${CMD[0]}" = "h" ]; then
+		cat $EXE_PATH/README
+
+#	iterate over playlist to the first chance to play song
+	elif [ "${CMD[0]}" = "goto" ] || [ "${CMD[0]}" = "go" ]; then
+		ohmm_goto
+
+#	get info of the current song playing
+	elif [ "${CMD[0]}" = "info" ] || [ "${CMD[0]}" = "i" ]; then
+		ohmm_get_info
 
 #	list the contents of the current mplayer play-list
 	elif [ "${CMD[0]}" = "list" ] || [ "${CMD[0]}" = "l" ]; then
@@ -117,27 +83,47 @@ function ohmm_driver {
 	elif [ "${CMD[0]}" = "mtp" ]; then
 		ohmm_mtp
 
+#	move down playlist file
+	elif [ "${CMD[0]}" = "next" ] || [ "${CMD[0]}" = "n" ]; then
+		ohmm_next
+		
+#	pause
+	elif [ "${CMD[0]}" = "pause" ] || [ "${CMD[0]}" = "p" ]; then
+		echo "pause" > $FIFO
+
+#	create $QUEUE, play song or songs in dir tree
+	elif [ "${CMD[0]}" = "play" ]; then
+		ohmm_play
+
 #	get position in the playlist
 	elif [ "${CMD[0]}" = "position" ] || [ "${CMD[0]}" = "pos" ]; then
 		ohmm_get_position
 
-#	iterate over playlist to the first chance to play song
-	elif [ "${CMD[0]}" = "goto" ] || [ "${CMD[0]}" = "go" ]; then
-		ohmm_goto
+#	clean up and leave
+	elif [ "${CMD[0]}" = "quit" ] || [ "${CMD[0]}" = "q" ]; then
+		ohmm_quit
+		break
+#	give options to repeat the current list
+	elif [ "${CMD[0]}" = "repeat" ]; then
+		ohmm_repeat
 
-#	backup contents of library
-	elif [ "${CMD[0]}" = "backup" ]; then
-		ohmm_backup
+#	shorthand, toggle the current value
+	elif [ "${CMD[0]}" = "s" ]; then
+		ohmm_shuffle_toggle
+
+#	verbose way to turn shuffle on|off
+	elif [ "${CMD[0]}" = "shuffle" ]; then
+		ohmm_shuffle
 
 #	delete play-list
 	elif [ "${CMD[0]}" = "stop" ]; then
 		echo "stop" > $FIFO
 		rm $QUEUE
-	
-#	clean up and leave
-	elif [ "${CMD[0]}" = "quit" ] || [ "${CMD[0]}" = "q" ]; then
-		ohmm_quit
-		break
+
+#	increase volume
+	elif [ "${CMD[0]}" = "up" ] || [ "${CMD[0]}" = "u" ]; then
+		ohmm_volume 1
+
 #	I don't recognize the command, leave to shell
 	else
 		ohmm_shell_cmd $CMD
@@ -147,6 +133,7 @@ function ohmm_driver {
 
 # driver loop
 while true; do
+# clear previous input
 CMD=""
 # 	prompt
 	echo -n "ohmm|$(basename $PWD) "
