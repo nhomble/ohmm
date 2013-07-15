@@ -7,14 +7,24 @@ Anything I do not know I will throw at your favorite shell!
 COMMANDS:
 	play [SONG]
 		if no argument is provided I play all contents of the directory recursively
-	pause
-	(n)ext|(b)ack
+	(p)ause
+	(n)ext|(b)ack [NUM]
 	(u)p|(d)own
 	add [SONG]
 		play afterwards for an on the fly playorder
 	info
 	stop
-	quit
+	(q)uit
+	(h)elp
+	shuffle [on|off]
+		or (s) to toggle
+	repeat [none||all|num] [NUM]
+	extract [soft|hard] [D_SRC]
+	mtp [ARGS]
+	backup
+	(l)ist
+	(pos)ition
+		in my playlist, what song am I at
+	(go)to [NUM]
+		go to certain number in playlist
 Use shell commands to navigate your filesystem and create directories for playlists.
-
-
