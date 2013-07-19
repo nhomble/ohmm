@@ -27,4 +27,6 @@ COMMANDS:
 		in my playlist, what song am I at
 	(go)to [NUM]
 		go to certain number in playlist
+	search
+	edit
 Use shell commands to navigate your filesystem and create directories for playlists.

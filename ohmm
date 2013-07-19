@@ -1,14 +1,11 @@
 #!/usr/bin/env bash
 
 # TODO
-# separate arguments by || and && possibly
 # colors
 # history
 # auto-complete
 # looping
-# appending
 # search
-# edit info
 
 # a little excessive? TODO
 pidof mplayer | xargs kill &>/dev/null
@@ -62,6 +59,9 @@ function ohmm_driver {
 #	take all files from a given directory and extract the files into my library
 	elif [ "${CMD[0]}" = "extract" ]; then
 		ohmm_extract
+
+	elif [ "${CMD[0]}" = "edit" ]; then
+		ohmm_edit
 
 #	print help
 	elif [ "${CMD[0]}" = "help" ] || [ "${CMD[0]}" = "h" ]; then

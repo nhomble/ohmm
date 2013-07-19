@@ -38,6 +38,8 @@ function ohmm_add {
 			echo "${CMD[1]} does not exist"
 		fi
 	fi
+#	ensure volume is set
+	echo "set volume $VOLUME 0" > $FIFO
 }
 
 function ohmm_back {
@@ -45,22 +47,58 @@ function ohmm_back {
 	if [ -z $ITER ]; then
 		echo "pt_step -1" > $FIFO
 	elif [ $ITER -gt 1 ]; then
-		echo "pt_step $ITER" > $FIFO
+		echo "pt_step -$ITER" > $FIFO
 	else
 		echo "Bad argument $ITER"
 	fi
 }
 
-# TODO - test
+# TODO - fix rsync 
 function ohmm_backup {
 	UPDATE=.ohmm_backup_in_process.tar.gz
 	tar -czvf $UPDATE "$LIBRARY"
-	rsync $UPDATE "EXE_PATH/library.tar.gz"
-	rm $UPDATE
 	UPDATE=""
 }
 
-# TODO - test, deal with overwriting better
+# TODO trailing spaces
+function ohmm_edit {
+	META_DATA=./.ohmm_edit_info
+	echo "OPTIONS are::
+		Song Title:
+		Artist:
+		Album:
+		Note:
+		Track:
+		Genre:
+		Year:
+		---------" > $META_DATA
+	SONG="${CMD[1]}"
+	if [ -z "$SONG" ]; then
+		echo "you gave me an empty argument"
+	else
+		if [ -e $SONG ]; then
+			GOOD=false
+			id3tool $SONG >> $META_DATA && GOOD=true
+			if [ $GOOD  ]; then
+				$EDITOR $META_DATA
+				SONG_TITLE=$(cat $META_DATA | grep "^Song Title" | sed -r 's/^Song Title:\s*([^\s]*)\s*/\1/g')
+				ARTIST=$(cat $META_DATA | grep "^Artist:" | sed -r 's/^Artist:\s*([^\s]*)\s*/\1/g')
+				ALBUM=$(cat $META_DATA | grep "^Album:" | sed -r 's/^Album:\s*([^\s]*)\s*/\1/g')
+				NOTE=$(cat $META_DATA | grep "^Note:" | sed -r 's/^Note:\s*([^\s]*)\s*/\1/g')
+				TRACK=$(cat $META_DATA | grep "^Track:" | sed -r 's/^Track:\s*([^\s]*)\s*/\1/g')
+				GENRE=$(cat $META_DATA | grep "^Genre:" | sed -r 's/^Genre:\s*([^\s]*)\s*/\1/g')
+				YEAR=$(cat $META_DATA | grep "^Year:" | sed -r 's/^Year:\s*([^\s]*)\s*/\1/g')
+				id3tool "$SONG" -t "$SONG_TITLE" -a "$ALBUM" -r "$ARTIST" -y "$YEAR" -n "$NOTE" -g "$GENRE" -c "$TRACK"
+			else
+				echo "id3tool could understand $SONG"
+			fi
+		else
+			echo "$SONG does not exist"
+		fi
+	fi
+	rm $META_DATA
+}
+
 function ohmm_extract {
 	DIR="${CMD[2]}"
 	ODIR=$(pwd)
@@ -73,6 +111,9 @@ function ohmm_extract {
 		if [ "${CMD[1]}" = "soft" ]; then
 			ln -s $f "$LIBRARY/$(basename $f)"
 		elif [ "${CMD[1]}" = "hard" ]; then
+			if [ -h "$LIBRARY/$(basename $f)" ]; then
+				rm "$LIBRARY/$(basename $f)"
+			fi
 			mv -n $f "$LIBRARY/$(basename $f)"
 		else
 			echo "Bad argument ${CMD[1]}"
@@ -91,10 +132,12 @@ function ohmm_get_info {
 	echo "get_meta_album" > $FIFO
 	echo "get_percent_pos" > $FIFO
 	echo "get_time_pos" > $FIFO
+	echo "get_time_length" > $FIFO
 	sleep $SLEEP 
-	tail $MY_STDOUT -n 7 | grep "ANS_" | 
+	tail $MY_STDOUT -n 8 | grep "ANS_" | 
 		sed -r 's/ANS_PERCENT_POSITION=([0-9][0-9]*)/\1% done/g' |
-		sed -r 's/ANS_TIME_POSITION=([0-9][0-9]*.[0-9][0-9]*)/\1 seconds elapsed/g' |
+		sed -r 's/ANS_TIME_POSITION=([0-9][0-9]*.[0-9][0-9]*)/\1s elapsed/g' |
+		sed -r 's/ANS_LENGTH=(.*)/Total length: \1s/g' |
 		sed -r 's/.*FILENAME=(.*)/File: \1/g' | 
 		sed -r 's/.*TITLE=(.*)/Name: \1/g' |
 		sed -r 's/.*TRACK=(.*)/Track: \1/g' |
@@ -110,13 +153,23 @@ function ohmm_get_position {
 
 # TODO goto string argument - first instance
 function ohmm_goto {
-	echo "not implemented"
+	if [ -z "${CMD[1]}" ]; then
+		echo "Give me a file to goto"
+	else
+		SEARCH=$(cat $QUEUE | grep ${CMD[1]})
+		if [ -z "$SEARCH" ]; then
+			echo "I cannot find ${CMD[1]} in the current queue"
+		else
+			echo $SEARCH
+		fi
+	fi
 }
 
-# TODO - clean up paths
 function ohmm_list {
 	if [ -e $QUEUE ]; then
-		cat $QUEUE | less -N
+		cat $QUEUE |
+			sed -r 's/.*[.]\/(.*)/\1/g' | 
+			less -N
 	else
 		echo "Nothing to show"
 	fi
@@ -158,7 +211,7 @@ function ohmm_play {
 			fi
 		done
 	else
-		if [ -e "${CMD[0]}" ]; then
+		if [ -e "${CMD[1]}" ]; then
 			if [ -d "${CMD[1]}" ]; then
 				ODIR=$PWD
 				cd "$1"
@@ -173,6 +226,7 @@ function ohmm_play {
 	fi
 	echo "loadlist $QUEUE 0" > $FIFO
 	IFS="$OIFS"
+	echo "set volume $VOLUME 0" > $FIFO
 }
 
 function ohmm_quit {
@@ -181,7 +235,9 @@ function ohmm_quit {
 		rm $QUEUE
 	fi
 	rm $FIFO
-	rm $MY_STDOUT
+	if [ -e $STDOUT ]; then
+		rm $MY_STDOUT
+	fi
 	echo -n $PS1
 }
 
@@ -198,12 +254,17 @@ function ohmm_repeat {
 	echo "set loop $LOOP" > $FIFO
 }
 
+# TODO
+function ohmm_search {
+	echo "not implemented"
+}
+
 function ohmm_shell_cmd {
 	LINE_CMD=""
 	for s in ${CMD[@]}; do
 		LINE_CMD="$LINE_CMD $s"
 	done
-	$LINE_CMD
+	eval $LINE_CMD
 }
 
 # TODO fix
