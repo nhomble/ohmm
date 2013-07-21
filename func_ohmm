@@ -5,11 +5,22 @@ source $VARS
 # ===============================================================
 
 function ohmm_add {
-	OIFS=$IFS
-	IFS=$'\n'
-# 	unlike play, I want you to be explicit with what you want to add
 	if [ -z "${CMD[1]}" ]; then
-		echo "no argument was provided"
+		ohmm_underscore "d"
+		OIFS=$IFS
+		IFS=$'\n'
+		for f in `find . \( ! -iname ".*" \) -iregex $FORMATS`; do
+			if [ -e $QUEUE ] && [ -f $f ]; then	
+#				spaces suck, I am going to fix them for you
+				mv -n "$f" $(echo "$f" | tr ' ' '_') &>/dev/null ||
+				echo "$(echo "$f" | tr ' ' '_')" >> $QUEUE ||
+				echo "loadfile $(echo "$f" | tr ' ' '_') 1" > $FIFO
+			else
+				ohmm_play
+				break
+			fi
+		done
+		IFS=$OIFS
 	fi
 
 	if [ ! -e $QUEUE ]; then 
@@ -20,15 +31,10 @@ function ohmm_add {
 	if [ -d "${CMD[1]}" ]; then
 		ODIR=$PWD
 		cd "${CMD[1]}"
-		for f in `find . \( ! -iname ".*" \) -type f -iregex $FORMATS`; do
-			if [ -e $QUEUE ] && [ -f $f ]; then	
-				echo "$PWD/${CMD[1]}/$f" >> $QUEUE
-				echo "loadfile $PWD/${CMD[1]}/$f 1" > $FIFO
-			else
-				ohmm_play
-				break
-			fi
-		done
+		
+		CMD[1]=""
+		ohmm_add
+
 		cd $ODIR
 #	file
 	elif [ -f "${CMD[1]}" ]; then
@@ -48,7 +54,6 @@ function ohmm_add {
 	fi
 #	ensure volume is set
 	echo "set volume $VOLUME 0" > $FIFO
-	IFS=$OIFS
 	return
 }
 
@@ -211,38 +216,33 @@ function ohmm_next {
 }
 
 function ohmm_play {
-	OIFS=$IFS
-	IFS=$'\n'
 #	get rid of old stuff
 	if [ -e $QUEUE ]; then
 		rm $QUEUE
 	fi
 	if [ -z "${CMD[1]}" ]; then
+		ohmm_underscore "d"	
+		OIFS=$IFS
+		IFS=$'\n'
 #		should filter just music extensions I think are applicable
-		for f in `find . \( ! -iname ".*" \) -type f -iregex $FORMATS`; do
+		for f in `find $PWD \( ! -iname ".*" \) -iregex $FORMATS -type f`; do
 #			I have not decided what I want to do here
-			if [ -d $f ]; then
+			if [ -d "$f" ]; then
 				continue
 			else
 #				spaces suck, I am going to fix them for you
-				cp -n $f $(echo $f | tr ' ' '_') &>/dev/null && rm $f
-				echo "$PWD/$(echo $f | tr ' ' '_')" >> $QUEUE 
+				mv -n "$f" $(echo "$f" | tr ' ' '_') ||
+				echo "$(echo "$f" | tr ' ' '_')" >> $QUEUE 
 			fi
 		done
+		IFS=$OIFS
 	elif [ -d "${CMD[1]}" ]; then
-		ODIR=$(pwd)
+		ODIR=$PWD
 		cd ${CMD[1]}
-#		should filter just music extensions I think are applicable
-		for f in `find . \( ! -iname ".*" \) -type f -iregex $FORMATS`; do
-#			I have not decided what I want to do here
-			if [ -d $f ]; then
-				continue
-			else
-#				spaces suck, I am going to fix them for you
-				cp -n $f $(echo $f | tr ' ' '_') &>/dev/null && rm $f
-				echo "$PWD/$(echo $f | tr ' ' '_')" >> $QUEUE 
-			fi
-		done
+		
+		CMD[1]=""
+		ohmm_play
+
 		cd $ODIR	
 	else
 		if [ -e "${CMD[1]}" ]; then
@@ -259,7 +259,6 @@ function ohmm_play {
 		fi
 	fi
 	echo "loadlist $QUEUE 0" > $FIFO
-	IFS="$OIFS"
 	echo "set volume $VOLUME 0" > $FIFO
 	return
 }
@@ -348,3 +347,11 @@ function ohmm_volume {
 	return
 }
 
+function ohmm_underscore {
+	HERP=$IFS
+	IFS=$'\n'
+	for f in $(find . -type $1); do
+		mv $f $(echo $f | tr ' ' '_') &> /dev/null
+	done
+	IFS=$HERP
+}
