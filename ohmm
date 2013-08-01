@@ -47,17 +47,9 @@ function ohmm_driver {
 	elif [ "${CMD[0]}" = "back" ] || [ "${CMD[0]}" = "b" ]; then
 		ohmm_back
 
-#	backup contents of library
-	elif [ "${CMD[0]}" = "backup" ]; then
-		ohmm_backup
-
 #	decrease volume
 	elif [ "${CMD[0]}" = "down" ] || [ "${CMD[0]}" = "d" ]; then
 		ohmm_volume -1
-
-#	take all files from a given directory and extract the files into my library
-	elif [ "${CMD[0]}" = "extract" ]; then
-		ohmm_extract
 
 	elif [ "${CMD[0]}" = "edit" ]; then
 		ohmm_edit

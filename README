@@ -19,9 +19,7 @@ COMMANDS:
 	shuffle [on|off]
 		or (s) to toggle
 	repeat [none||all|num] [NUM]
-	extract [soft|hard] [D_SRC]
 	mtp [ARGS]
-	backup
 	(l)ist
 	(pos)ition
 		in my playlist, what song am I at
