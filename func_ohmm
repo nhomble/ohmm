@@ -231,7 +231,7 @@ function ohmm_play {
 				continue
 			else
 #				spaces suck, I am going to fix them for you
-				mv -n "$f" $(echo "$f" | tr ' ' '_') ||
+				mv -n "$f" $(echo "$f" | tr ' ' '_') &> /dev/null ||
 				echo "$(echo "$f" | tr ' ' '_')" >> $QUEUE 
 			fi
 		done

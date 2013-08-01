@@ -9,7 +9,6 @@
 
 # a little excessive? TODO
 pidof mplayer | xargs kill &>/dev/null
-
 PWD=$(pwd)
 EXE_PATH=$(dirname "$0")
 EXE_PATH=$(cd $EXE_PATH && pwd)
@@ -134,7 +133,7 @@ function ohmm_driver {
 # driver loop
 while true; do
 # clear previous input
-CMD=""
+	CMD=""
 # 	prompt
 	echo -n "ohmm|$(basename $PWD) "
 
