@@ -15,6 +15,8 @@ EXE_PATH=$(cd $EXE_PATH && pwd)
 FUNCS="$EXE_PATH/func_ohmm"
 VARS="$EXE_PATH/var_ohmm"
 
+bind -x '"\t":"tab"' &> /dev/null
+
 if [ ! -e $FUNCS ] || [ ! -e $VARS ]; then
 	echo "Where are my guts? Check that $FUNCS and $VARS exist"
 	exit
@@ -122,16 +124,45 @@ function ohmm_driver {
 
 }
 
-# driver loop
-while true; do
+tab(){
+#	just get rid of empty lines
+	if [ -z "$READLINE_LINE" ]; then
+		return
+	fi
+	STRING=""
+#	tokenize
+	read -a STRING <<< "$READLINE_LINE"
+#	only care about the last token
+	QUERY=${STRING[${#STRING[@]} - 1]}
+#	TODO improve search
+	ls | grep "$QUERY" > $COMPLETE_LIST
+#	see how many results I got
+	TEMP=$(wc -l $COMPLETE_LIST)
+	TEMP=$(echo $TEMP | sed -r 's/([0-9]*).*/\1/g')
+#	oh, auto-complete
+	if [ $TEMP = "1" ]; then
+		STRING[${#STRING[@]} - 1]=$(cat $COMPLETE_LIST | sed -n 1p)
+		READLINE_LINE=${STRING[@]}
+	else
+		cat $COMPLETE_LIST
+	fi
+	rm $COMPLETE_LIST
+}
+
+function get_command {
 # clear previous input
 	CMD=""
-# 	prompt
-	echo -n "ohmm|$(basename $PWD) "
-
-# 	get user command and tokenize into array
-	read -a CMD 
-
+	RAW=""
+# 	get user command and tokenize, assume TAB is happening
+	read -p "ohmm|$(basename $PWD) " -e RAW
+#	ok now tokenize
+	read -a CMD <<< "$RAW"
 #	handle CMD
 	ohmm_driver
+}
+
+# driver loop
+while true; do
+	get_command
 done
+
