@@ -69,14 +69,6 @@ function ohmm_back {
 	return
 }
 
-# TODO - fix rsync 
-function ohmm_backup {
-	UPDATE=.ohmm_backup_in_process.tar.gz
-	tar -czvf $UPDATE "$LIBRARY"
-	UPDATE=""
-	return
-}
-
 # TODO trailing spaces
 function ohmm_edit {
 	META_DATA=./.ohmm_edit_info
@@ -114,31 +106,6 @@ function ohmm_edit {
 		fi
 	fi
 	rm $META_DATA
-	return
-}
-
-function ohmm_extract {
-	DIR="${CMD[2]}"
-	ODIR=$PWD
-
-#	check for empty argument - I will use current directory if needed
-	if [ ! -z "$DIR" ]; then
-		cd $DIR
-	fi
-	for f in `find . \( ! -iname ".*" \) -type f -iregex $FORMATS`; do
-		if [ "${CMD[1]}" = "soft" ]; then
-			ln -s $f "$LIBRARY/$(basename $f)"
-		elif [ "${CMD[1]}" = "hard" ]; then
-			if [ -h "$LIBRARY/$(basename $f)" ]; then
-				rm "$LIBRARY/$(basename $f)"
-			fi
-			mv -n $f "$LIBRARY/$(basename $f)"
-		else
-			echo "Bad argument ${CMD[1]}"
-			break
-		fi
-	done
-	cd $ODIR	
 	return
 }
 
