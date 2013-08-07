@@ -19,4 +19,4 @@ LIBRARY="$EXE_PATH/library"
 
 # auto-complete business
 RAW=""
-COMPLETE_LIST=./complete_list_ohmm
+COMPLETE_LIST=/var/tmp/.complete_list_ohmm

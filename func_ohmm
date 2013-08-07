@@ -6,15 +6,13 @@ source $VARS
 
 function ohmm_add {
 	if [ -z "${CMD[1]}" ]; then
-		ohmm_underscore "d"
 		OIFS=$IFS
 		IFS=$'\n'
 		for f in `find . \( ! -iname ".*" \) -iregex $FORMATS`; do
 			if [ -e $QUEUE ] && [ -f $f ]; then	
 #				spaces suck, I am going to fix them for you
-				mv -n "$f" $(echo "$f" | tr ' ' '_') &>/dev/null ||
-				echo "$(echo "$f" | tr ' ' '_')" >> $QUEUE ||
-				echo "loadfile $(echo "$f" | tr ' ' '_') 1" > $FIFO
+				echo "$(echo "$f" | sed 's/\s/\\ /g')" >> $QUEUE
+				echo "loadfile $(echo "$f" | sed 's/\s/\\ /g') 1" > $FIFO
 			else
 				ohmm_play
 				break
@@ -188,7 +186,6 @@ function ohmm_play {
 		rm $QUEUE
 	fi
 	if [ -z "${CMD[1]}" ]; then
-		ohmm_underscore "d"	
 		OIFS=$IFS
 		IFS=$'\n'
 #		should filter just music extensions I think are applicable
@@ -198,8 +195,8 @@ function ohmm_play {
 				continue
 			else
 #				spaces suck, I am going to fix them for you
-				mv -n "$f" $(echo "$f" | tr ' ' '_') &> /dev/null ||
-				echo "$(echo "$f" | tr ' ' '_')" >> $QUEUE 
+				mv -n "$f" $(echo "$f" | sed 's/\s/\\ /g') &> /dev/null ||
+				echo "$(echo "$f" | sed 's/\s/\\ /g')" >> $QUEUE 
 			fi
 		done
 		IFS=$OIFS
@@ -312,13 +309,4 @@ function ohmm_volume {
 
 	fi
 	return
-}
-
-function ohmm_underscore {
-	HERP=$IFS
-	IFS=$'\n'
-	for f in $(find . -type $1); do
-		mv $f $(echo $f | tr ' ' '_') &> /dev/null
-	done
-	IFS=$HERP
 }

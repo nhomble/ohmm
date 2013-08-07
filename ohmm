@@ -13,7 +13,6 @@ EXE_PATH=$(dirname "$0")
 EXE_PATH=$(cd $EXE_PATH && pwd)
 FUNCS="$EXE_PATH/func_ohmm"
 VARS="$EXE_PATH/var_ohmm"
-
 bind -x '"\t":"tab"' &> /dev/null
 
 if [ ! -e $FUNCS ] || [ ! -e $VARS ]; then
