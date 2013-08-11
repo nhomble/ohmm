@@ -195,7 +195,6 @@ function ohmm_play {
 				continue
 			else
 #				spaces suck, I am going to fix them for you
-				mv -n "$f" $(echo "$f" | sed 's/\s/\\ /g') &> /dev/null ||
 				echo "$(echo "$f" | sed 's/\s/\\ /g')" >> $QUEUE 
 			fi
 		done

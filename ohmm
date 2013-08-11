@@ -6,8 +6,6 @@
 # looping
 # search
 
-# a little excessive? TODO
-pidof mplayer | xargs kill &>/dev/null
 PWD=$(pwd)
 EXE_PATH=$(dirname "$0")
 EXE_PATH=$(cd $EXE_PATH && pwd)
@@ -109,7 +107,9 @@ function ohmm_driver {
 #	delete play-list
 	elif [ "${CMD[0]}" = "stop" ]; then
 		echo "stop" > $FIFO
-		rm $QUEUE
+		if [ -e $QUEUE ]; then
+			rm $QUEUE
+		fi
 
 #	increase volume
 	elif [ "${CMD[0]}" = "up" ] || [ "${CMD[0]}" = "u" ]; then
@@ -156,6 +156,7 @@ function get_command {
 #	ok now tokenize
 	read -a CMD <<< "$RAW"
 #	handle CMD
+	CMD[1]=$(echo ${CMD[@]:1:${#CMD[@]}} | sed -e "s/\s/\\ /g" | sed "s/'/\\'/g")
 	ohmm_driver
 }
 
