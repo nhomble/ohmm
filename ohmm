@@ -152,7 +152,7 @@ function get_command {
 	CMD=""
 	RAW=""
 # 	get user command and tokenize, assume TAB is happening
-	read -p "ohmm|$(basename $PWD) " -e RAW
+	read -p "ohmm|$(basename "$PWD") " -e RAW
 #	ok now tokenize
 	read -a CMD <<< "$RAW"
 #	handle CMD

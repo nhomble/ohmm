@@ -27,13 +27,13 @@ function ohmm_add {
 	fi	
 #	a directory
 	if [ -d "${CMD[1]}" ]; then
-		ODIR=$PWD
+		ODIR="$PWD"
 		cd "${CMD[1]}"
 		
 		CMD[1]=""
 		ohmm_add
 
-		cd $ODIR
+		cd "$ODIR"
 #	file
 	elif [ -f "${CMD[1]}" ]; then
 #		append to playlist file
@@ -189,7 +189,7 @@ function ohmm_play {
 		OIFS=$IFS
 		IFS=$'\n'
 #		should filter just music extensions I think are applicable
-		for f in `find $PWD \( ! -iname ".*" \) -iregex $FORMATS -type f`; do
+		for f in `find "$PWD" \( ! -iname ".*" \) -iregex $FORMATS -type f`; do
 #			I have not decided what I want to do here
 			if [ -d "$f" ]; then
 				continue
@@ -200,20 +200,20 @@ function ohmm_play {
 		done
 		IFS=$OIFS
 	elif [ -d "${CMD[1]}" ]; then
-		ODIR=$PWD
-		cd ${CMD[1]}
+		ODIR="$PWD"
+		cd "${CMD[1]}"
 		
 		CMD[1]=""
 		ohmm_play
 
-		cd $ODIR	
+		cd "$ODIR"
 	else
 		if [ -e "${CMD[1]}" ]; then
 			if [ -d "${CMD[1]}" ]; then
-				ODIR=$PWD
-				cd "$1"
+				ODIR="$PWD"
+				cd "${CMD[1]}"
 				ohmm_play "" ""
-				cd $ODIR
+				cd "$ODIR"
 			else
 				echo "$PWD/${CMD[1]}" >> $QUEUE
 			fi
