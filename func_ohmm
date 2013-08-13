@@ -11,8 +11,8 @@ function ohmm_add {
 		for f in `find . \( ! -iname ".*" \) -iregex $FORMATS`; do
 			if [ -e $QUEUE ] && [ -f $f ]; then	
 #				spaces suck, I am going to fix them for you
-				echo "$(echo "$f" | sed 's/\s/\\ /g')" >> $QUEUE
-				echo "loadfile $(echo "$f" | sed 's/\s/\\ /g') 1" > $FIFO
+				echo "$f" >> $QUEUE
+				echo "loadfile $f" > $FIFO
 			else
 				ohmm_play
 				break
@@ -194,8 +194,7 @@ function ohmm_play {
 			if [ -d "$f" ]; then
 				continue
 			else
-#				spaces suck, I am going to fix them for you
-				echo "$(echo "$f" | sed 's/\s/\\ /g')" >> $QUEUE 
+				echo "$f" >> $QUEUE 
 			fi
 		done
 		IFS=$OIFS

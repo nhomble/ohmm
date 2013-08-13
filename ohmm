@@ -6,6 +6,19 @@
 # looping
 # search
 
+# check for Exec config
+M_DESKTOP=/usr/share/applications/mplayer.desktop
+if [ -e $M_DESKTOP ]; then
+	VAL=$(cat $M_DESKTOP | grep "Exec=mplayer %" | sed "s/Exec=mplayer %\(.\)/\1/g")
+	if [ $VAL != "F" ]; then
+		echo "In $M_DESKTOP, you must change Exec=mplayer %$VAL to --> Exec=mplayer %F"
+		exit
+	fi
+else
+	echo "Is mplayer even installed? $M_DESKTOP does not exist!"
+	exit
+fi
+
 PWD=$(pwd)
 EXE_PATH=$(dirname "$0")
 EXE_PATH=$(cd $EXE_PATH && pwd)
@@ -30,7 +43,6 @@ fi
 
 MARGS="-slave -loop $LOOP -idle -quiet -input file=$FIFO"
 mplayer $MARGS > $MY_STDOUT 2>&1 &
-
 # command handler
 function ohmm_driver {
 #	nothing
