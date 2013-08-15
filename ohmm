@@ -18,24 +18,26 @@ else
 	echo "Is mplayer even installed? $M_DESKTOP does not exist!"
 	exit
 fi
+if [ "$TERM" = "xterm" ]; then
+	IS_XTERM=true
+else
+	IS_XTERM=false
+fi
 
 PWD=$(pwd)
 EXE_PATH=$(dirname "$0")
 EXE_PATH=$(cd $EXE_PATH && pwd)
 FUNCS="$EXE_PATH/func_ohmm"
 VARS="$EXE_PATH/var_ohmm"
-bind -x '"\t":"tab"' &> /dev/null
+READ="$EXE_PATH/read_ohmm"
 
-if [ ! -e $FUNCS ] || [ ! -e $VARS ]; then
-	echo "Where are my guts? Check that $FUNCS and $VARS exist"
+if [ ! -e $FUNCS ] || [ ! -e $VARS ] || [ ! -e $READ ]; then
+	echo "Where are my guts? Check that $READ, $FUNCS, and $VARS exist"
 	exit
 fi
 
+source $READ
 source $FUNCS
-
-if [ ! -e $LIBRARY ]; then
-	mkdir $LIBRARY
-fi
 
 if [ ! -e $FIFO ]; then
 	mkfifo $FIFO
@@ -134,46 +136,11 @@ function ohmm_driver {
 
 }
 
-tab(){
-#	just get rid of empty lines
-	if [ -z "$READLINE_LINE" ]; then
-		return
-	fi
-	STRING=""
-#	tokenize
-	read -a STRING <<< "$READLINE_LINE"
-#	only care about the last token
-	QUERY=${STRING[${#STRING[@]} - 1]}
-#	TODO improve search
-	ls | grep "$QUERY" > $COMPLETE_LIST
-#	see how many results I got
-	TEMP=$(wc -l $COMPLETE_LIST)
-	TEMP=$(echo $TEMP | sed -r 's/([0-9]*).*/\1/g')
-#	oh, auto-complete
-	if [ $TEMP = "1" ]; then
-		STRING[${#STRING[@]} - 1]=$(cat $COMPLETE_LIST | sed -n 1p)
-		READLINE_LINE=${STRING[@]}
-	else
-		cat $COMPLETE_LIST
-	fi
-	rm $COMPLETE_LIST
-}
-
-function get_command {
-# clear previous input
-	CMD=""
-	RAW=""
-# 	get user command and tokenize, assume TAB is happening
-	read -p "ohmm|$(basename "$PWD") " -e RAW
-#	ok now tokenize
-	read -a CMD <<< "$RAW"
-#	handle CMD
-	CMD[1]=$(echo ${CMD[@]:1:${#CMD[@]}} | sed -e "s/\s/\\ /g" | sed "s/'/\\'/g")
-	ohmm_driver
-}
 
 # driver loop
 while true; do
+	CMD=[]
 	get_command
+	ohmm_driver
 done
 

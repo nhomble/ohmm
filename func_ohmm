@@ -189,14 +189,25 @@ function ohmm_play {
 		OIFS=$IFS
 		IFS=$'\n'
 #		should filter just music extensions I think are applicable
-		for f in `find "$PWD" \( ! -iname ".*" \) -iregex $FORMATS -type f`; do
-#			I have not decided what I want to do here
-			if [ -d "$f" ]; then
-				continue
-			else
-				echo "$f" >> $QUEUE 
-			fi
-		done
+		if [ $IS_SHUFFLE ]; then
+			for f in $(find "$PWD" \( ! -iname ".*" \) -iregex $FORMATS -type f | shuffle); do
+				if [ -d "$f" ]; then
+					continue
+				else
+					echo "$f" >> $QUEUE 
+				fi
+
+			done
+		else
+			for f in `find "$PWD" \( ! -iname ".*" \) -iregex $FORMATS -type f`; do
+#				I have not decided what I want to do here
+				if [ -d "$f" ]; then
+					continue
+				else
+					echo "$f" >> $QUEUE 
+				fi
+			done
+		fi
 		IFS=$OIFS
 	elif [ -d "${CMD[1]}" ]; then
 		ODIR="$PWD"
