@@ -141,6 +141,6 @@ function ohmm_driver {
 while true; do
 	CMD=[]
 	get_command
-	ohmm_driver
+#	ohmm_driver
 done
 

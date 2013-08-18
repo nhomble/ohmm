@@ -1,4 +1,5 @@
 #!/bin/env bash
+
 bind -x '"\t":"tab"' &> /dev/null
 
 tab(){
@@ -6,24 +7,47 @@ tab(){
 	if [ -z "$READLINE_LINE" ]; then
 		return
 	fi
+
 	STRING=""
 #	tokenize
 	read -a STRING <<< "$READLINE_LINE"
+	POS=1
+#	first argument is always one word, a command
+	CMD[0]=${STRING[0]}
+	unset STRING[0]
+	TEMP="${STRING[0]}"
+	unset STRING[0]
+#	parse files and directories out of the input
+	for word in ${STRING[@]}; do
+#		if temp matches then put into current pos
+		if [ -e "$PWD/$TEMP" ]; then
+			CMD[$POS]=$TEMP
+#			update temp and increment
+			TEMP="$word"
+			POS=$(( $POS + 1 ))
+#		I guess I need to keep adding words 		
+		else
+			TEMP="$TEMP $word"
+		fi
+	done
+#	put the rest into the last arg
+	CMD[$POS]="$TEMP"
+	READLINE_LINE=${CMD[@]}
 #	only care about the last token
-	QUERY=${STRING[${#STRING[@]} - 1]}
+	#QUERY=${STRING[${#STRING[@]} - 1]}
 #	TODO improve search
-	ls | grep "$QUERY" > $COMPLETE_LIST
+	#ls | grep "$QUERY" > $COMPLETE_LIST
 #	see how many results I got
-	TEMP=$(wc -l $COMPLETE_LIST)
-	TEMP=$(echo $TEMP | sed -r 's/([0-9]*).*/\1/g')
+	#TEMP=$(wc -l $COMPLETE_LIST)
+	#TEMP=$(echo $TEMP | sed -r 's/([0-9]*).*/\1/g')
 #	oh, auto-complete
-	if [ $TEMP = "1" ]; then
-		STRING[${#STRING[@]} - 1]=$(cat $COMPLETE_LIST | sed -n 1p)
-		READLINE_LINE=${STRING[@]}
-	else
-		cat $COMPLETE_LIST
-	fi
-	rm $COMPLETE_LIST
+	#if [ $TEMP = "1" ]; then
+	#	STRING[${#STRING[@]} - 1]=$(cat $COMPLETE_LIST | sed -n 1p)
+	#	READLINE_LINE=${STRING[@]}
+	#else
+	#	cat $COMPLETE_LIST
+	#fi
+	#rm $COMPLETE_LIST
 }
 
 function get_command {
@@ -32,7 +56,7 @@ function get_command {
 # 	get user command and tokenize, assume TAB is happening
 	read -p "ohmm|$(basename "$PWD") " -e RAW
 #	ok now tokenize
-	read -a CMD <<< "$RAW"
+	#read -a CMD <<< "$RAW"
 #	handle CMD
-	CMD[1]=$(echo ${CMD[@]:1:${#CMD[@]}} | sed -e "s/\s/\\ /g" | sed "s/'/\\'/g")
+	#CMD[1]=$(echo ${CMD[@]:1:${#CMD[@]}} | sed -e "s/\s/\\ /g" | sed "s/'/\\'/g")
 }
