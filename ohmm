@@ -29,14 +29,12 @@ EXE_PATH=$(dirname "$0")
 EXE_PATH=$(cd $EXE_PATH && pwd)
 FUNCS="$EXE_PATH/func_ohmm"
 VARS="$EXE_PATH/var_ohmm"
-READ="$EXE_PATH/read_ohmm"
 
 if [ ! -e $FUNCS ] || [ ! -e $VARS ] || [ ! -e $READ ]; then
-	echo "Where are my guts? Check that $READ, $FUNCS, and $VARS exist"
+	echo "Where are my guts? Check that $FUNCS, and $VARS exist"
 	exit
 fi
 
-source $READ
 source $FUNCS
 
 if [ ! -e $FIFO ]; then
@@ -136,11 +134,64 @@ function ohmm_driver {
 
 }
 
+bind -x '"\t":"tab"' &> /dev/null
+
+tab(){
+#	just get rid of empty lines
+	if [ -z "$READLINE_LINE" ]; then
+		return
+	fi
+##	only care about the last token
+#	TODO improve search
+	compgen -df ${CMD[$POS]}> $COMPLETE_LIST
+#	see how many results I got
+	TEMP=$(wc -l $COMPLETE_LIST)
+	TEMP=$(echo $TEMP | sed -r 's/([0-9]*).*/\1/g')
+#	oh, auto-complete
+	if [ $TEMP = "1" ]; then
+		CMD[$POS]=$(cat $COMPLETE_LIST | sed -n 1p)
+		READLINE_LINE=${CMD[@]}
+	else
+		cat $COMPLETE_LIST
+	fi
+	rm $COMPLETE_LIST
+}
 
 # driver loop
 while true; do
 	CMD=[]
-	get_command
-#	ohmm_driver
+	POS=0
+# 	get user command and tokenize, assume TAB is happening
+	read -p "ohmm|$(basename "$PWD") " -e STRING
+#	tokenize
+	read -a STRING <<< "$STRING"
+#	first argument is always one word, a command
+	CMD[$POS]=${STRING[0]}
+	POS=$(( $POS + 1 ))
+	unset STRING[0]
+
+	TEMP="${STRING[0]}"
+	unset STRING[0]
+
+#	parse files and directories out of the input
+	for word in ${STRING[@]}; do
+#		if temp matches then put into current pos
+		if [ -e "$PWD/$TEMP" ]; then
+			CMD[$POS]=$TEMP
+#			update temp and increment
+			TEMP="$word"
+			POS=$(( $POS + 1 ))
+#		I guess I need to keep adding words 		
+		else
+			TEMP="$TEMP $word"
+		fi
+	done
+#	put the rest into the last arg
+	CMD[$POS]="$TEMP"
+
+	#CMD[1]=$(echo ${CMD[@]:1:${#CMD[@]}} | sed -e "s/\s/\\ /g" | sed "s/'/\\'/g")
+
+
+	ohmm_driver
 done
 
