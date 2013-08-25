@@ -141,16 +141,46 @@ tab(){
 	if [ -z "$READLINE_LINE" ]; then
 		return
 	fi
+
+	read -a STRING <<< "$READLINE_LINE"
+
+	tCMD=[]
+	tPOS=0
+#	first argument is always one word, a command
+	tCMD[$tPOS]=${STRING[0]}
+	tPOS=$(( $tPOS + 1 ))
+
+	TEMP="${STRING[1]}"
+#	parse files and directories out of the input
+	for word in ${STRING[@]:2:${#STRING[@]}}; do
+#		if temp matches then put into current pos
+		if [ -e "$PWD/$TEMP" ]; then
+			tCMD[$tPOS]=$TEMP
+#			update temp and increment
+			TEMP="$word"
+			tPOS=$(( $tPOS + 1 ))
+#		I guess I need to keep adding words 		
+		else
+			TEMP="$TEMP $word"
+		fi
+	done
+#	put the rest into the last arg
+	tCMD[$tPOS]="$TEMP"
+
 ##	only care about the last token
 #	TODO improve search
-	compgen -df ${CMD[$POS]} > $COMPLETE_LIST
+	if [ ${tCMD[$tPOS]} = "ls" ] || [ ${tCMD[$tPOS]} = "cd" ]; then
+		compgen -d ${tCMD[$tPOS]} > $COMPLETE_LIST
+	else
+		compgen -f ${tCMD[$tPOS]} > $COMPLETE_LIST
+	fi
 #	see how many results I got
 	TEMP=$(wc -l $COMPLETE_LIST)
 	TEMP=$(echo $TEMP | sed -r 's/([0-9]*).*/\1/g')
 #	oh, auto-complete
 	if [ $TEMP = "1" ]; then
-		CMD[$POS]=$(cat $COMPLETE_LIST | sed -n 1p)
-		READLINE_LINE=${CMD[@]}
+		tCMD[$tPOS]=$(cat $COMPLETE_LIST | sed -n 1p)
+		READLINE_LINE=${tCMD[@]}
 	else
 		cat $COMPLETE_LIST
 	fi
@@ -158,14 +188,7 @@ tab(){
 
 }
 
-# driver loop
-while true; do
-	CMD=[]
-	POS=0
-# 	get user command and tokenize, assume TAB is happening
-	read -p "ohmm|$(basename "$PWD") " -e STRING
-#	tokenize
-	read -a STRING <<< "$STRING"
+function parse {
 #	first argument is always one word, a command
 	CMD[$POS]=${STRING[0]}
 	POS=$(( $POS + 1 ))
@@ -186,7 +209,17 @@ while true; do
 	done
 #	put the rest into the last arg
 	CMD[$POS]="$TEMP"
-	#CMD[1]=$(echo ${CMD[@]:1:${#CMD[@]}} | sed -e "s/\s/\\ /g" | sed "s/'/\\'/g")
+}
+
+# driver loop
+while true; do
+	CMD=[]
+	POS=0
+# 	get user command and tokenize, assume TAB is happening
+	read -p "ohmm|$(basename "$PWD") " -e STRING
+#	tokenize
+	read -a STRING <<< "$STRING"
+	parse
 	ohmm_driver
 done
 
