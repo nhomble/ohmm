@@ -143,7 +143,7 @@ tab(){
 	fi
 ##	only care about the last token
 #	TODO improve search
-	compgen -df ${CMD[$POS]}> $COMPLETE_LIST
+	compgen -df ${CMD[$POS]} > $COMPLETE_LIST
 #	see how many results I got
 	TEMP=$(wc -l $COMPLETE_LIST)
 	TEMP=$(echo $TEMP | sed -r 's/([0-9]*).*/\1/g')
@@ -155,6 +155,7 @@ tab(){
 		cat $COMPLETE_LIST
 	fi
 	rm $COMPLETE_LIST
+
 }
 
 # driver loop
@@ -168,13 +169,10 @@ while true; do
 #	first argument is always one word, a command
 	CMD[$POS]=${STRING[0]}
 	POS=$(( $POS + 1 ))
-	unset STRING[0]
 
-	TEMP="${STRING[0]}"
-	unset STRING[0]
-
+	TEMP="${STRING[1]}"
 #	parse files and directories out of the input
-	for word in ${STRING[@]}; do
+	for word in ${STRING[@]:2:${#STRING[@]}}; do
 #		if temp matches then put into current pos
 		if [ -e "$PWD/$TEMP" ]; then
 			CMD[$POS]=$TEMP
@@ -188,10 +186,7 @@ while true; do
 	done
 #	put the rest into the last arg
 	CMD[$POS]="$TEMP"
-
 	#CMD[1]=$(echo ${CMD[@]:1:${#CMD[@]}} | sed -e "s/\s/\\ /g" | sed "s/'/\\'/g")
-
-
 	ohmm_driver
 done
 
