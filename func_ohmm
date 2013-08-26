@@ -189,7 +189,7 @@ function ohmm_play {
 		OIFS=$IFS
 		IFS=$'\n'
 #		should filter just music extensions I think are applicable
-		if [ $IS_SHUFFLE ]; then
+		if [ $IS_SHUFFLE = "true" ]; then
 			for f in $(find "$PWD" \( ! -iname ".*" \) -iregex $FORMATS -type f | shuffle); do
 				if [ -d "$f" ]; then
 					continue
@@ -199,7 +199,7 @@ function ohmm_play {
 
 			done
 		else
-			for f in `find "$PWD" \( ! -iname ".*" \) -iregex $FORMATS -type f`; do
+			for f in $(find "$PWD" -iregex $FORMATS -type f | sort); do
 #				I have not decided what I want to do here
 				if [ -d "$f" ]; then
 					continue
@@ -282,20 +282,23 @@ function ohmm_shell_cmd {
 # TODO fix
 function ohmm_shuffle {
 	if [ "${CMD[1]}" = "on" ]; then
-		IS_SHUFFLE=true
+		IS_SHUFFLE="true"
 	elif [ "${CMD[1]}" = "off" ]; then
-		IS_SHUFFLE=false
+		IS_SHUFFLE="false"
 	else
 		echo "bad argument: ${CMD[1]}"
+		return
 	fi
 	return
 }
 
 function ohmm_shuffle_toggle {
-	if [ $IS_SHUFFLE ]; then
-		IS_SHUFFLE=false
+	if [ $IS_SHUFFLE = "true" ]; then
+		IS_SHUFFLE="false"
+		echo "shuffle off"
 	else
-		IS_SHUFFLE=true
+		IS_SHUFFLE="true"
+		echo "shuffle on"
 	fi
 	return
 }

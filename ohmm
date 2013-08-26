@@ -111,11 +111,9 @@ function ohmm_driver {
 #	shorthand, toggle the current value
 	elif [ "${CMD[0]}" = "s" ]; then
 		ohmm_shuffle_toggle
-
 #	verbose way to turn shuffle on|off
 	elif [ "${CMD[0]}" = "shuffle" ]; then
 		ohmm_shuffle
-
 #	delete play-list
 	elif [ "${CMD[0]}" = "stop" ]; then
 		echo "stop" > $FIFO
