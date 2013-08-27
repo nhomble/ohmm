@@ -167,7 +167,7 @@ tab(){
 
 ##	only care about the last token
 #	TODO improve search
-	if [ ${tCMD[$tPOS]} = "ls" ] || [ ${tCMD[$tPOS]} = "cd" ]; then
+	if [ "${tCMD[$tPOS]}" = "ls" ] || [ "${tCMD[$tPOS]}" = "cd" ]; then
 		compgen -d ${tCMD[$tPOS]} > $COMPLETE_LIST
 	else
 		compgen -f ${tCMD[$tPOS]} > $COMPLETE_LIST
