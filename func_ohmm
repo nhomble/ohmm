@@ -272,7 +272,7 @@ function ohmm_search {
 function ohmm_shell_cmd {
 	LINE_CMD=""
 	for s in "${CMD[@]}"; do
-		add=$(echo $s | sed -e "s/\s/\\\ /g")
+		add=$(echo $s | sed -e "s/\s/\\\ /g" | sed -e "s/(/\\\(/g" | sed -e "s/)/\\\)/g" )
 		LINE_CMD="$LINE_CMD $add"
 	done
 	eval $LINE_CMD
