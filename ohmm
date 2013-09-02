@@ -213,6 +213,12 @@ function parse {
 while true; do
 	CMD=[]
 	POS=0
+
+#	clear the array
+	for i in $(seq ${#CMD[@]}); do
+		CMD[$i]=""
+	done
+
 # 	get user command and tokenize, assume TAB is happening
 	read -p "ohmm|$(basename "$PWD") " -e STRING
 #	tokenize
