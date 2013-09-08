@@ -44,7 +44,7 @@ function ohmm_add {
 		else
 #			need to create the playlist
 			echo "$PWD/${CMD[1]}" > $QUEUE
-			echo "loadlist $QUEUE 1" > $FIFO
+			echo "loadfile $PWD/${CMD[1]} 1" > $FIFO
 		fi
 #	does not exist
 	else
