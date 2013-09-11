@@ -83,7 +83,7 @@ function ohmm_edit {
 	if [ -z "$SONG" ]; then
 		echo "you gave me an empty argument"
 	else
-		if [ -e $SONG ]; then
+		if [ -e "$SONG" ]; then
 			GOOD=false
 			id3tool $SONG >> $META_DATA && GOOD=true
 			if [ $GOOD  ]; then
