@@ -251,6 +251,8 @@ function ohmm_quit {
 
 # TODO fix
 function ohmm_repeat {
+	echo "loadlist $QUEUE" > $FIFO
+	return
 	if [ "${CMD[1]}" = "none" ]; then
 		LOOP=-1
 	elif [ "${CMD[1]}" = "all" ]; then

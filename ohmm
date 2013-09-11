@@ -206,7 +206,7 @@ function parse {
 		fi
 	done
 #	put the rest into the last arg
-	CMD[$POS]="$TEMP"
+	CMD[$POS]="$(echo $TEMP | sed -r "s/\(/\\(/g" | sed -r "s/\)/\\)/g" | sed -r "s/\&/\\\&/g")"
 }
 
 # driver loop
@@ -223,6 +223,7 @@ while true; do
 	read -p "ohmm|$(basename "$PWD") " -e STRING
 #	tokenize
 	read -a STRING <<< "$STRING"
+
 	parse
 	ohmm_driver
 done
