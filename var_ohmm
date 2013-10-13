@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # for use in my find invocations - I only want to work with certain audio types
-FORMATS='.*\(mp3\|mp4\|flac\)'
+FORMATS='.*\(mp3\|mp4\|flac\|wav\)'
 
 FIFO=/var/tmp/.fifo
 MY_STDOUT=/var/tmp/.ohmm_out
