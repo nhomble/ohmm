@@ -5,20 +5,24 @@ source $VARS
 # ===============================================================
 
 function ohmm_add {
+
+	echo "arg ${CMD[1]}"
+#	empty string
 	if [ -z "${CMD[1]}" ]; then
 		OIFS=$IFS
 		IFS=$'\n'
-		for f in `find . \( ! -iname ".*" \) -iregex $FORMATS`; do
-			if [ -e $QUEUE ] && [ -f $f ]; then	
-#				spaces suck, I am going to fix them for you
-				echo "$f" >> $QUEUE
-				echo "loadfile $f" > $FIFO
+		for f in $(find . \( ! -iname ".*" \) -iregex $FORMATS -type f); do
+			if [ -e $QUEUE ]; then	
+#				TODO
+				echo "$(pwd)/$f" >> $QUEUE
+				echo "loadfile $(pwd)/$f 1" > $FIFO
 			else
 				ohmm_play
 				break
 			fi
 		done
 		IFS=$OIFS
+		return
 	fi
 
 	if [ ! -e $QUEUE ]; then 
