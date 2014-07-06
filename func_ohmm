@@ -6,7 +6,6 @@ source $VARS
 
 function ohmm_add {
 
-	echo "arg ${CMD[1]}"
 #	empty string
 	if [ -z "${CMD[1]}" ]; then
 		OIFS=$IFS
